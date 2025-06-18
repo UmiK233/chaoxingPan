@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UmiK网盘 - 个人空间</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.mengze.vip/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        neutral: '#F2F3F5',
+                        dark: '#1D2129',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        .popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            max-width: 100%;
+            width: 80%;
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+        }
+
+        .copy-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+        }
+    </style>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+
+            .file-input-hidden {
+                display: none;
+            }
+
+            .progress-bar {
+                transition: width 0.3s ease;
+            }
+
+            .hover-lift {
+                transition: transform 0.2s ease, box-shadow 0.2s ease;
+            }
+
+            .hover-lift:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            }
+        }
+    </style>
+</head>
+
+<body class="font-inter bg-gray-50 text-dark min-h-screen flex flex-col">
+    <div id="overlay" class="overlay"></div>
+
+    <div id="popup" class="popup">
+        <span class="close-btn" id="closePopupBtn">&times;</span>
+        <h3>下载链接</h3>
+        <p id="textToCopy">这是一段示例文本，你可以点击复制按钮将其复制到剪贴板。</p>
+        <button class="copy-btn" id="copyBtn">复制文本</button>
+        <p id="copyStatus" style="color: green; display: none;">已复制！</p>
+    </div>
+    <!-- 导航栏 -->
+    <header class="bg-white shadow-sm fixed w-full z-50 transition-all duration-300">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-cloud text-primary text-2xl"></i>
+                <h1 class="text-xl font-bold text-primary">UmiK网盘</h1>
+            </div>
+
+            <!-- 用户菜单 -->
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center">
+                    <i class="fa fa-user-circle text-gray-500 mr-2"></i>
+                    <span id="username-display" class="font-medium"></span>
+                </div>
+                <div class="relative">
+                    <button id="logout-btn"
+                        class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md transition-colors">
+                        <i class="fa fa-sign-out mr-1"></i> 退出
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主内容区 -->
+    <main class="flex-grow pt-16">
+        <!-- 个人空间内容 -->
+        <div class="container mx-auto px-4 py-8">
+            <!-- 存储空间概览 -->
+            <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4">
+                    <div>
+                        <h2 class="text-xl font-bold mb-1">我的空间</h2>
+                        <p class="text-gray-500">管理您的文件和文件夹</p>
+                    </div>
+                    <div class="mt-4 md:mt-0 flex items-center space-x-3">
+                        <div class="relative">
+                            <button id="upload-btn"
+                                class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md transition-colors flex items-center">
+                                <i class="fa fa-upload mr-2"></i> 上传文件
+                                <input type="file" id="file-upload-input" class="file-input-hidden" multiple>
+                            </button>
+                            <!--                        <button id="showPopupBtn"-->
+                            <!--                                class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md transition-colors flex items-center">-->
+                            <!--                            <i class="fa fa-upload mr-2"></i> 显示弹出框-->
+                            <!--                        </button>-->
+                        </div>
+                        <!--                    <div class="relative">-->
+                        <!--                        <button id="create-folder-btn"-->
+                        <!--                                class="bg-white hover:bg-gray-100 text-primary border border-primary px-4 py-2 rounded-md transition-colors flex items-center">-->
+                        <!--                            <i class="fa fa-folder-plus mr-2"></i> 新建文件夹-->
+                        <!--                        </button>-->
+                        <!--                    </div>-->
+                    </div>
+                </div>
+
+                <!-- 存储使用情况 -->
+                <!--            <div class="mb-4">-->
+                <!--                <div class="flex justify-between mb-1">-->
+                <!--                    <span class="text-sm font-medium">存储空间使用情况</span>-->
+                <!--                    <span id="storage-used" class="text-sm font-medium"></span>-->
+                <!--                </div>-->
+                <!--                <div class="w-full bg-gray-200 rounded-full h-2.5">-->
+                <!--                    <div id="storage-progress" class="bg-primary h-2.5 rounded-full progress-bar"-->
+                <!--                         style="width: 0%"></div>-->
+                <!--                </div>-->
+                <!--            </div>-->
+
+                <!-- 当前位置 -->
+                <!--            <div class="flex items-center text-sm text-gray-500 mb-4">-->
+                <!--                <i class="fa fa-folder-open mr-2"></i>-->
+                <!--                <div class="flex items-center space-x-1">-->
+                <!--                    <span id="current-path">/</span>-->
+                <!--                    <button id="back-btn" class="ml-2 text-primary hover:text-primary/80 hidden">-->
+                <!--                        <i class="fa fa-arrow-left mr-1"></i> 返回上级-->
+                <!--                    </button>-->
+                <!--                </div>-->
+                <!--            </div>-->
+            </div>
+
+            <!-- 文件列表 -->
+            <div class="bg-white rounded-lg shadow-sm p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold">文件列表</h3>
+                    <div class="flex items-center space-x-2">
+                        <button id="list-view-btn" class="text-gray-500 hover:text-primary p-2 rounded-md">
+                            <i class="fa fa-list"></i>
+                        </button>
+                        <button id="grid-view-btn" class="text-gray-500 hover:text-primary p-2 rounded-md">
+                            <i class="fa fa-th-large"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 空状态 -->
+                <div id="empty-state" class="flex flex-col items-center justify-center py-12 text-center">
+                    <div class="bg-neutral rounded-full p-4 mb-4">
+                        <i class="fa fa-folder-open-o text-3xl text-gray-400"></i>
+                    </div>
+                    <h3 class="text-lg font-medium mb-1">暂无文件</h3>
+                    <p class="text-gray-500 mb-4">上传一些文件到您的空间，它们将显示在这里</p>
+                    <button id="upload-empty-btn"
+                        class="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-md transition-colors">
+                        <i class="fa fa-upload mr-2"></i> 上传文件
+                    </button>
+                </div>
+
+                <!-- 文件网格视图 -->
+                <div id="grid-view" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 hidden">
+                    <!-- 文件项将通过JavaScript动态生成 -->
+                </div>
+
+                <!-- 文件列表视图 -->
+                <div id="list-view" class="hidden">
+                    <table class="w-full">
+                        <thead>
+                            <tr class="border-b border-gray-200">
+                                <th class="text-left py-3 px-4 font-medium text-gray-500">名称</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-500">大小</th>
+                                <th class="text-left py-3 px-4 font-medium text-gray-500">修改日期</th>
+                                <th class="text-right py-3 px-4 font-medium text-gray-500">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="list-view-body">
+                            <!-- 文件项将通过JavaScript动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-white border-t border-gray-200 py-6">
+        <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+            <!-- 这里添加免责声明代码 -->
+            <div class="mt-8 text-center text-sm text-gray-500">
+                <p>免责声明：本网站仅供学习交流使用 严禁用于非法用途</p>
+            </div>
+            <p>© 2025 UmiK 网盘</p>
+        </div>
+    </footer>
+
+    <!-- 上传进度模态框 -->
+    <div id="upload-progress-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            <div class="p-6">
+                <h3 class="text-lg font-semibold mb-4">正在上传文件</h3>
+
+                <div id="upload-progress-container" class="space-y-4">
+                    <!-- 上传进度项将通过JavaScript动态生成 -->
+                </div>
+
+                <div class="mt-6">
+                    <button id="close-upload-modal"
+                        class="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 font-medium py-2 px-4 rounded-md transition-colors">
+                        关闭
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 通知提示 -->
+    <div id="notification"
+        class="fixed top-4 right-4 max-w-sm bg-white rounded-lg shadow-lg p-4 transform transition-all duration-300 translate-x-full z-50">
+        <div class="flex items-start">
+            <div id="notification-icon" class="mr-3 text-blue-500">
+                <i class="fa fa-info-circle"></i>
+            </div>
+            <div class="flex-1">
+                <h4 id="notification-title" class="text-sm font-medium text-gray-800"></h4>
+                <p id="notification-message" class="mt-1 text-sm text-gray-600"></p>
+            </div>
+            <button id="close-notification" class="ml-3 text-gray-400 hover:text-gray-500">
+                <i class="fa fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // API配置
+        // const API_BASE_URL = "localhost";
+
+        // DOM元素
+        const usernameDisplay = document.getElementById('username-display');
+        const logoutBtn = document.getElementById('logout-btn');
+        const uploadBtn = document.getElementById('upload-btn');
+        const fileUploadInput = document.getElementById('file-upload-input');
+        const uploadEmptyBtn = document.getElementById('upload-empty-btn');
+        // const createFolderBtn = document.getElementById('create-folder-btn');
+        const storageUsed = document.getElementById('storage-used');
+        const storageProgress = document.getElementById('storage-progress');
+        // const currentPath = document.getElementById('current-path');
+        // const backBtn = document.getElementById('back-btn');
+        const emptyState = document.getElementById('empty-state');
+        const gridView = document.getElementById('grid-view');
+        const listView = document.getElementById('list-view');
+        const gridViewBtn = document.getElementById('grid-view-btn');
+        const listViewBtn = document.getElementById('list-view-btn');
+        const listViewBody = document.getElementById('list-view-body');
+        const uploadProgressModal = document.getElementById('upload-progress-modal');
+        const uploadProgressContainer = document.getElementById('upload-progress-container');
+        const closeUploadModal = document.getElementById('close-upload-modal');
+        const notification = document.getElementById('notification');
+        const notificationIcon = document.getElementById('notification-icon');
+        const notificationTitle = document.getElementById('notification-title');
+        const notificationMessage = document.getElementById('notification-message');
+        const closeNotification = document.getElementById('close-notification');
+        const showPopupBtn = document.getElementById('showPopupBtn');
+        const closePopupBtn = document.getElementById('closePopupBtn');
+        const popup = document.getElementById('popup');
+        const overlay = document.getElementById('overlay');
+        const copyBtn = document.getElementById('copyBtn');
+        const textToCopy = document.getElementById('textToCopy');
+        const copyStatus = document.getElementById('copyStatus');
+
+
+        // 全局变量
+        let token = localStorage.getItem('token');
+        let currentFolder = '';
+        let viewMode = 'list';
+        setViewMode('list')
+
+        // 页面加载时检查登录状态
+        document.addEventListener('DOMContentLoaded', () => {
+            // if (!token) {
+            //     // 未登录，重定向到登录页面
+            //     window.location.href = 'login.html';
+            //     return;
+            // }
+
+            checkAuth();
+
+            // 事件监听器
+            logoutBtn.addEventListener('click', logout);
+            uploadBtn.addEventListener('click', () => fileUploadInput.click());
+            uploadEmptyBtn.addEventListener('click', () => fileUploadInput.click());
+            // createFolderBtn.addEventListener('click', createFolder);
+            fileUploadInput.addEventListener('change', handleFileUpload);
+            gridViewBtn.addEventListener('click', () => setViewMode('grid'));
+            listViewBtn.addEventListener('click', () => setViewMode('list'));
+            closeUploadModal.addEventListener('click', () => uploadProgressModal.classList.add('hidden'));
+            closeNotification.addEventListener('click', hideNotification);
+            // backBtn.addEventListener('click', goBack);
+            // // 显示弹出框
+            // showPopupBtn.addEventListener('click', () => {
+            //     popup.style.display = 'block';
+            //     overlay.style.display = 'block';
+            // });
+            // 关闭弹出框
+            closePopupBtn.addEventListener('click', () => {
+                popup.style.display = 'none';
+                overlay.style.display = 'none';
+                copyStatus.style.display = 'none'; // 重置复制状态
+            });
+            // 点击遮罩层关闭弹出框
+            overlay.addEventListener('click', () => {
+                popup.style.display = 'none';
+                overlay.style.display = 'none';
+                copyStatus.style.display = 'none'; // 重置复制状态
+            });
+            // 复制文本到剪贴板
+            copyBtn.addEventListener('click', () => {
+                // 创建临时文本区域
+                const textArea = document.createElement('textarea');
+                textArea.value = textToCopy.textContent;
+                document.body.appendChild(textArea);
+                // 选择文本并复制
+                textArea.select();
+                document.execCommand('copy');
+                // 移除临时文本区域
+                document.body.removeChild(textArea);
+                // 显示复制成功状态
+                copyStatus.style.display = 'block';
+                setTimeout(() => {
+                    copyStatus.style.display = 'none';
+                }, 2000);
+            });
+
+
+            // 滚动时导航栏效果
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 10) {
+                    document.querySelector('header').classList.add('py-2', 'shadow-md');
+                    document.querySelector('header').classList.remove('py-3', 'shadow-sm');
+                } else {
+                    document.querySelector('header').classList.add('py-3', 'shadow-sm');
+                    document.querySelector('header').classList.remove('py-2', 'shadow-md');
+                }
+            });
+        });
+
+        // 检查认证状态
+        async function checkAuth() {
+            try {
+                // 加载文件列表
+                await loadFiles();
+            } catch (error) {
+                console.error('认证检查错误:', error);
+                logout();
+            }
+        }
+
+        // 登出
+        async function logout() {
+            const response = await fetch(`{{API_BASE_URL}}/logout`, {});
+            console.log(response.text())
+            // // 重定向到登录页面
+            window.location.href = '/loginPage';
+        }
+
+        // 加载文件列表
+        async function loadFiles() {
+            try {
+                const response = await fetch(`{{API_BASE_URL}}/getFiles`, {
+                    headers: {
+                        "Access-Control-Allow-Origin": "*",
+                        "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 14; 2210132C Build/UKQ1.230804.001) (schild:eb5855e665cb3a6db065e6d1c8a086be) (device:2210132C) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.5.9_android_phone_10890_281 (@Kalimdor)_0fe743fbc142436cab02bc393001f490",
+                        "Accept-Language": "zh_CN",
+                        "Connection": "Keep-Alive"
+                    },
+                });
+
+
+                if (!response.ok) {
+                    showNotification('错误', '获取文件列表失败', 'error');
+                    return;
+                }
+
+                const files = await response.json();
+
+                // console.log(files)
+
+                // // 更新当前路径
+                // currentPath.textContent = currentFolder ? `/${currentFolder}` : '/';
+                //
+                // // 显示/隐藏返回按钮
+                // backBtn.classList.toggle('hidden', !currentFolder);
+
+                // 清空现有文件项
+                gridView.innerHTML = '';
+                listViewBody.innerHTML = '';
+
+                if (files.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    gridView.classList.add('hidden');
+                    listView.classList.add('hidden');
+                    return;
+                }
+
+                emptyState.classList.add('hidden');
+
+                // // 按类型和名称排序
+                // files.sort((a, b) => {
+                //     console.log(a,b)
+                //     // 文件夹优先
+                //     if (a.folder !== b.folder) {
+                //         return a.folder ? -1 : 1;
+                //     }
+                //     // 然后按名称排序
+                //     return a.filename.localeCompare(b.filename);
+                // });
+
+                // 渲染文件列表
+                files.forEach(file => {
+                    renderFileItem(file);
+                });
+
+                document.querySelectorAll('.text-primary').forEach(button => {
+                    button.addEventListener('click', async function () {
+                        // 方式1：直接跳转下载链接
+                        // console.log(this.id)
+                        const response = await fetch(`{{API_BASE_URL}}/getDownload/${this.id}`, {
+                            headers: {
+                                "Access-Control-Allow-Origin": "*",
+                                "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 14; 2210132C Build/UKQ1.230804.001) (schild:eb5855e665cb3a6db065e6d1c8a086be) (device:2210132C) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.5.9_android_phone_10890_281 (@Kalimdor)_0fe743fbc142436cab02bc393001f490",
+                                "Accept-Language": "zh_CN",
+                            },
+                        });
+                        textToCopy.textContent = await response.json()
+                        popup.style.display = 'block';
+                        overlay.style.display = 'block';
+                        // window.location.href = `/download/${fileId}`;
+                    });
+                });
+                document.querySelectorAll('.text-red-500').forEach(button => {
+                    button.addEventListener('click', async function () {
+                        // 添加确认提示框
+                        const isConfirmed = confirm('确定要删除这个文件吗？');
+                        if (!isConfirmed) {
+                            return;
+                        }
+
+                        let deleteId = this.id.slice(0, -6);
+                        const response = await fetch(`{{API_BASE_URL}}/delete/${deleteId}`, {
+                            headers: {
+                                "Access-Control-Allow-Origin": "*",
+                                "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 14; 2210132C Build/UKQ1.230804.001) (schild:eb5855e665cb3a6db065e6d1c8a086be) (device:2210132C) Language/zh_CN com.chaoxing.mobile/ChaoXingStudy_3_6.5.9_android_phone_10890_281 (@Kalimdor)_0fe743fbc142436cab02bc393001f490",
+                                "Accept-Language": "zh_CN",
+                            },
+                        });
+                        if (response.ok) {
+                            showNotification('成功', '文件删除成功', 'success');
+                            await loadFiles();
+                        } else {
+                            showNotification('失败', '文件删除失败', 'danger');
+                        }
+                    });
+                });
+
+                // 显示当前视图模式
+                if (viewMode === 'grid') {
+                    gridView.classList.remove('hidden');
+                    listView.classList.add('hidden');
+                } else {
+                    gridView.classList.add('hidden');
+                    listView.classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('加载文件列表错误:', error);
+                showNotification('错误', '获取文件列表失败', 'error');
+            }
+        }
+
+        // 渲染文件项
+        function renderFileItem(file) {
+            const isFolder = file.folder;
+            const iconClass = isFolder ? 'fa-folder' : 'fa-file';
+
+            // 网格视图项
+            const gridItem = document.createElement('div');
+            gridItem.classList.add('bg-white', 'rounded-lg', 'shadow-sm', 'p-4', 'hover-lift');
+            // console.log(file.residstr)
+            gridItem.innerHTML = `
+            <div class="flex flex-col items-center">
+                <i class="fa ${iconClass} text-3xl text-gray-400 mb-2"></i>
+                <span class="text-sm font-medium text-gray-800">${file.name}</span>
+            </div>
+        `;
+            gridView.appendChild(gridItem);
+
+            // 列表视图项
+            const listItem = document.createElement('tr');
+            listItem.innerHTML = `
+            <td class="py-3 px-4">
+                <i class="fa ${iconClass} text-gray-400 mr-2"></i>
+                <span class="text-sm font-medium text-gray-800">${file.name}</span>
+            </td>
+            <td class="py-3 px-4 text-sm text-gray-600">${formatBytes(file.size) || 'N/A'}</td>
+            <td class="py-3 px-4 text-sm text-gray-600">${formatDate(file.modifyDate) || 'N/A'}</td>
+            <td class="py-3 px-4 text-right">
+                <button id="${file.residstr}" class="text-primary hover:text-primary/80 text-sm">下载</button>
+                <button id="${file.residstr}Delete" class="text-red-500 hover:text-red-600 text-sm ml-2">删除</button>
+            </td>
+        `;
+            listViewBody.appendChild(listItem);
+        }
+
+        // 设置视图模式
+        function setViewMode(mode) {
+            viewMode = mode;
+            if (mode === 'grid') {
+                gridView.classList.remove('hidden');
+                listView.classList.add('hidden');
+            } else {
+                gridView.classList.add('hidden');
+                listView.classList.remove('hidden');
+            }
+        }
+
+        // 更新存储空间信息
+        function updateStorageInfo(used) {
+            storageUsed.textContent = used;
+            // 假设总空间为100GB，这里可以根据实际情况修改
+            const total = 100 * 1024 * 1024 * 1024;
+            const percentage = (used / total) * 100;
+            storageProgress.style.width = `${percentage}%`;
+        }
+
+        // 显示通知
+        function showNotification(title, message, type = 'info') {
+            notificationIcon.className = `mr-3 ${type === 'error' ? 'text-red-500' : 'text-blue-500'}`;
+            notificationIcon.innerHTML = `<i class="fa ${type === 'error' ? 'fa-exclamation-circle' : 'fa-info-circle'}"></i>`;
+            notificationTitle.textContent = title;
+            notificationMessage.textContent = message;
+            notification.classList.remove('translate-x-full');
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        // 隐藏通知
+        function hideNotification() {
+            notification.classList.add('translate-x-full');
+        }
+
+        // 创建文件夹
+        async function createFolder() {
+            const folderName = prompt('请输入文件夹名称');
+            if (folderName) {
+                try {
+                    const response = await fetch(`{{API_BASE_URL}}/folders`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ name: folderName, parent: currentFolder })
+                    });
+
+                    if (response.ok) {
+                        showNotification('成功', '文件夹创建成功', 'success');
+                        loadFiles();
+                    } else {
+                        showNotification('错误', '文件夹创建失败', 'error');
+                    }
+                } catch (error) {
+                    console.error('创建文件夹错误:', error);
+                    showNotification('错误', '文件夹创建失败', 'error');
+                }
+            }
+        }
+
+        // 处理文件上传
+        async function handleFileUpload() {
+            const files = fileUploadInput.files;
+            if (files.length > 0) {
+                // uploadProgressModal.classList.remove('hidden');
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const formData = new FormData();
+                    formData.append('file', file);
+                    formData.append('folder', currentFolder);
+
+                    // const progressItem = document.createElement('div');
+                    // progressItem.innerHTML = `
+                    //     <div class="flex items-center justify-between">
+                    //         <span class="text-sm font-medium">${file.name}</span>
+                    //         <span class="text-sm text-gray-600">0%</span>
+                    //     </div>
+                    //     <div class="w-full bg-gray-200 rounded-full h-2.5">
+                    //         <div class="bg-primary h-2.5 rounded-full progress-bar" style="width: 0%"></div>
+                    //     </div>
+                    // `;
+                    // uploadProgressContainer.appendChild(progressItem);
+
+                    try {
+                        const response = await fetch(`{{API_BASE_URL}}/upload`, {
+                            method: 'POST',
+                            body: formData
+                        });
+
+                        if (response.ok) {
+                            showNotification('成功', '文件上传成功', 'success');
+                            await loadFiles();
+                        } else {
+                            showNotification('错误', '文件上传失败', 'error');
+                        }
+                    } catch (error) {
+                        console.error('文件上传错误:', error);
+                        showNotification('错误', '文件上传失败', 'error');
+                    }
+                }
+            }
+        }
+
+        // 返回上级文件夹
+        function goBack() {
+            if (currentFolder) {
+                const parts = currentFolder.split('/');
+                parts.pop();
+                currentFolder = parts.join('/');
+                loadFiles();
+            }
+        }
+
+        function formatDate(timestamp) {
+            const date = new Date(timestamp);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            const seconds = String(date.getSeconds()).padStart(2, '0');
+
+            return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+        }
+
+        function fetchFilesWithJSONP(uid, token, callback) {
+            // 创建一个唯一的回调函数名，避免命名冲突
+            const callbackName = `jsonpCallback_${Date.now()}`;
+
+            // 将回调函数名添加到window对象上，以便全局访问
+            window[callbackName] = function (data) {
+                try {
+                    callback(null, data);
+                } finally {
+                    // 清理：删除script标签和全局回调函数
+                    document.body.removeChild(script);
+                    delete window[callbackName];
+                }
+            };
+
+            // 构建请求URL，包含回调函数名
+            const url = `http://pan-yz.chaoxing.com/api/getMyDirAndFiles?puid=${uid}&fldid=&page=1&size=100&addrec=0&showCollect=1&_token=${token}&callback=${callbackName}`;
+
+            // 创建script元素
+            const script = document.createElement('script');
+            script.src = url;
+
+            // 错误处理
+            script.onerror = function () {
+                callback(new Error('JSONP请求失败'));
+                // 清理
+                document.body.removeChild(script);
+                delete window[callbackName];
+            };
+
+            // 将script元素添加到页面中，触发请求
+            document.body.appendChild(script);
+        }
+
+        // fetchFilesWithJSONP(uid, token, function (error, data) {
+        //     if (error) {
+        //         console.error('请求出错:', error);
+        //     } else {
+        //         console.log('获取的数据:', data);
+        //     }
+        // });
+
+        function formatBytes(bytes) {
+            const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+            let unitIndex = 0;
+            let size = bytes;
+
+            while (size >= 1024 && unitIndex < units.length - 1) {
+                size /= 1024;
+                unitIndex++;
+            }
+
+            // 使用 Intl.NumberFormat 格式化数字（自动处理千分位和小数点）
+            const formatter = new Intl.NumberFormat('zh-CN', {
+                maximumFractionDigits: 2,
+            });
+
+            return `${formatter.format(size)} ${units[unitIndex]}`;
+        }
+
+
+    </script>
+</body>
+
+</html>
