@@ -4,10 +4,15 @@ import secrets
 import time
 import requests
 from aes_pkcs5.algorithms.aes_ecb_pkcs5_padding import AESECBPKCS5Padding
-from fastapi import FastAPI, HTTPException, Depends, Request, Response, Form, UploadFile, File
+from fastapi import FastAPI, Request, Form, UploadFile, File
 from starlette.middleware.cors import CORSMiddleware
-from starlette.responses import FileResponse, Response, RedirectResponse, HTMLResponse
+from starlette.responses import Response, RedirectResponse
 from starlette.templating import Jinja2Templates
+
+# from Crypto.Cipher import AES
+# from Crypto.Util.Padding import pad
+# import base64
+
 
 if not os.path.exists('users.json'):
     # 如果文件不存在，创建一个空的JSON文件
@@ -37,7 +42,7 @@ app = FastAPI()
 
 templates = Jinja2Templates(directory="templates")
 
-API_BASE_URL = "http://localhost:8080"
+API_BASE_URL = "http://localhost"
 
 app.add_middleware(
     CORSMiddleware,
@@ -48,17 +53,36 @@ app.add_middleware(
 )
 
 
-def aes_encrypt(key, message):
+def aes_encrypt_pkcs5(key, message):
     cipher = AESECBPKCS5Padding(key, "b64")
     encrypted = cipher.encrypt(message)
     return encrypted
+
+
+# def aes_encrypt_pkcs7(key, message):
+#     # 确保密钥是16、24或32字节长度（对应AES-128/192/256）
+#     key_bytes = key.encode('utf-8')
+#     message_bytes = message.encode('utf-8')
+#
+#     # 使用密钥作为IV（初始向量），注意这不是安全做法，仅为兼容原JavaScript代码
+#     iv = key_bytes[:16]  # 取密钥的前16字节作为IV
+#
+#     # 创建AES CBC模式加密器
+#     cipher = AES.new(key_bytes, AES.MODE_CBC, iv)
+#
+#     # 对消息进行PKCS7填充并加密
+#     padded_data = pad(message_bytes, AES.block_size)
+#     encrypted_bytes = cipher.encrypt(padded_data)
+#
+#     # 将加密结果转换为Base64字符串
+#     return base64.b64encode(encrypted_bytes).decode('utf-8')
 
 
 def get_headers_uid_token(username, password):
     sess = requests.Session()
     login_key = 'z4ok6lu^oWp4_AES'
     login_message = f'{{"uname":"{username}","code":"{password}"}}'
-    login_info = aes_encrypt(login_key, login_message)
+    login_info = aes_encrypt_pkcs5(login_key, login_message)
     login_url = 'http://passport2-api.chaoxing.com/v11/loginregister'
     login_data = {
         'logininfo': login_info,
@@ -81,6 +105,36 @@ def get_headers_uid_token(username, password):
     token = get_token_response.json()["_token"]
 
     return [cookies_string, cookies["_uid"], token]
+
+
+# def get_headers_uid_token(username, password):
+#     sess = requests.Session()
+#     login_key = 'u2oh6Vu^HWe4_AES'
+#     login_url = 'http://passport2.chaoxing.com/fanyalogin'
+#     login_data = {
+#         'uname': aes_encrypt_pkcs7(login_key, username),
+#         'password': aes_encrypt_pkcs7(login_key, password),
+#         't': "true"
+#     }
+#     headers = {
+#         "User-Agent": "Firefox/89.0"
+#     }
+#     login_res = sess.post(url=login_url, data=login_data, headers=headers, verify=False)
+#     # print(login_res.cookies)
+#     cookies_name = ["fid", "_uid", "_d", "vc3", "uf"]
+#     cookies = {name: login_res.cookies.get(name) for name in cookies_name}
+#     cookies_string = '; '.join([f'{k}={v}' for k, v in cookies.items()])
+#
+#     headers_with_cookies = headers
+#     headers_with_cookies["Cookie"] = cookies_string
+#
+#     get_token_url = "http://pan-yz.chaoxing.com/api/token/uservalid"
+#
+#     get_token_response = requests.get(url=get_token_url, headers=headers)
+#
+#     token = get_token_response.json()["_token"]
+#
+#     return [cookies_string, cookies["_uid"], token]
 
 
 def session_to_curl(url: str, headers: dict, file_name=None):
@@ -200,7 +254,7 @@ def download(request: Request, res_id: str):
 
     # 获取下载直链
     get_download_response = requests.get(url=get_download_url, headers=headers_with_cookies)
-    print(get_download_response.text)
+    # print(get_download_response.text)
     download_url = get_download_response.json()["url"]
     file_name = get_download_response.json()["data"]["name"]
 
@@ -234,7 +288,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
     upload_url = f"http://pan-yz.cldisk.com/upload/uploadfile?_token={xxt_token}&puid={uid}"
     upload_response = requests.post(url=upload_url, headers=headers_with_cookies, files=upload_files)
     # {'code': -6, 'msg': '不能识别的文件类型, 上传失败', 'newCode': 200009, 'result': False}
-    print(upload_response.json())
+    # print(upload_response.json())
     if upload_response.json()["result"] == False:
         if upload_response.json()["newCode"] == 200009:
             # 先上传一个正常文件
@@ -243,7 +297,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
                 ('file', (modified_file_name, file_content, "application/octet-stream"))
             ]
             modified_upload_response = requests.post(url=upload_url, headers=headers_with_cookies, files=modified_files)
-            print(modified_upload_response.json())
+            # print(modified_upload_response.json())
             # 获取他的crc校验码
             crc = modified_upload_response.json()["data"]["crc"]
             file_size = modified_upload_response.json()["data"]["size"]
@@ -261,7 +315,7 @@ async def upload_file(request: Request, file: UploadFile = File(...)):
                 # "fldid": "0"
             }
             newfile_response = requests.post(url=newfile_url, headers=headers_with_cookies, data=newfile_data)
-            print(newfile_response.json())
+            # print(newfile_response.json())
 
             return modified_upload_response.json()["result"]
     return upload_response.json()["result"]
@@ -288,4 +342,21 @@ def delete_file(request: Request, res_id: str):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    import argparse
+
+    # 创建参数解析器
+    parser = argparse.ArgumentParser(description="示例：命令行参数解析")
+    # 添加位置参数（必填）
+    parser.add_argument("-p", "--port", type=int, default=8080, help="端口号（默认8080）")
+    # 添加可选参数（带默认值和类型）
+    parser.add_argument("-u", "--url", type=str, default=API_BASE_URL, help="你的公网地址（如果有）")
+    # 添加标志位参数（布尔值）
+    parser.add_argument("-v", "--verbose", action="store_true", help="显示详细信息")
+    # 解析参数
+    args = parser.parse_args()
+
+    port = args.port
+    API_BASE_URL = f"{args.url}"
+    # print(args)
+    # print(API_BASE_URL)
+    uvicorn.run(app, host="0.0.0.0", port=port)
