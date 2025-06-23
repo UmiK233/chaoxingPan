@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UmiK网盘 - 登录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.mengze.vip/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36CFC9',
+                        neutral: '#F2F3F5',
+                        dark: '#1D2129',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+
+            .auth-card {
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+            }
+
+            .auth-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            }
+        }
+    </style>
+</head>
+
+<body class="font-inter bg-gray-50 text-dark min-h-screen flex flex-col">
+<!-- 导航栏 -->
+<header class="bg-white shadow-sm fixed w-full z-50">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+            <i class="fa fa-cloud text-primary text-2xl"></i>
+            <h1 class="text-xl font-bold text-primary">UmiK网盘</h1>
+        </div>
+    </div>
+</header>
+
+<!-- 主内容区 -->
+<main class="flex-grow pt-16 flex items-center justify-center px-4 py-8">
+    <!-- 登录/注册卡片 -->
+    <div class="w-full max-w-md">
+        <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 auth-card">
+            <div class="flex justify-center mb-6">
+                <div class="bg-primary/10 rounded-full p-3">
+                    <i class="fa fa-user-circle text-primary text-2xl"></i>
+                </div>
+            </div>
+
+            <div id="auth-container">
+                <!-- 登录表单 -->
+                <div id="login-form" class="space-y-6">
+                    <h2 class="text-2xl font-bold text-center">登录</h2>
+
+                    <div>
+                        <label for="login-username" class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa fa-user text-gray-400"></i>
+                            </div>
+                            <input type="text" id="login-username"
+                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                   placeholder="请输入用户名">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="login-password" class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa fa-lock text-gray-400"></i>
+                            </div>
+                            <input type="password" id="login-password"
+                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                   placeholder="请输入密码">
+                        </div>
+                    </div>
+
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <input id="remember-me" name="remember-me" type="checkbox"
+                                   class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
+                            <label for="remember-me" class="ml-2 block text-sm text-gray-900">记住我</label>
+                        </div>
+                        <a href="#" class="text-sm font-medium text-primary hover:text-primary/80">忘记密码?</a>
+                    </div>
+
+                    <div>
+                        <button id="login-submit"
+                                class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-md transition-colors flex items-center justify-center">
+                            <i class="fa fa-sign-in mr-2"></i> 登录
+                        </button>
+                    </div>
+
+                    <div class="text-center">
+                        <span class="text-gray-500">还没有账号?</span>
+                        <button id="toggle-to-register" class="text-primary hover:text-primary/80 font-medium ml-1">
+                            立即注册
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 注册表单 -->
+                <div id="register-form" class="space-y-6 hidden">
+                    <h2 class="text-2xl font-bold text-center">注册</h2>
+
+                    <div>
+                        <label for="register-username"
+                               class="block text-sm font-medium text-gray-700 mb-1">用户名</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa fa-user text-gray-400"></i>
+                            </div>
+                            <input type="text" id="register-username"
+                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                   placeholder="请输入用户名">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="register-password"
+                               class="block text-sm font-medium text-gray-700 mb-1">密码</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa fa-lock text-gray-400"></i>
+                            </div>
+                            <input type="password" id="register-password"
+                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                   placeholder="请输入密码">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="register-confirm-password"
+                               class="block text-sm font-medium text-gray-700 mb-1">确认密码</label>
+                        <div class="relative">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <i class="fa fa-lock text-gray-400"></i>
+                            </div>
+                            <input type="password" id="register-confirm-password"
+                                   class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary"
+                                   placeholder="请再次输入密码">
+                        </div>
+                    </div>
+
+                    <div>
+                        <button id="register-submit"
+                                class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-3 px-4 rounded-md transition-colors flex items-center justify-center">
+                            <i class="fa fa-user-plus mr-2"></i> 注册
+                        </button>
+                    </div>
+
+                    <div class="text-center">
+                        <span class="text-gray-500">已有账号?</span>
+                        <button id="toggle-to-login" class="text-primary hover:text-primary/80 font-medium ml-1">
+                            立即登录
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- 页脚 -->
+<footer class="bg-white border-t border-gray-200 py-6">
+    <div class="container mx-auto px-4 text-center text-gray-500 text-sm">
+        <!-- 这里添加免责声明代码 -->
+        <div class="mt-8 text-center text-sm text-gray-500">
+            <p>免责声明：本网站仅供学习交流使用 严禁用于非法用途</p>
+        </div>
+        <p>© 2025 UmiK 网盘</p>
+    </div>
+</footer>
+
+<!-- 通知提示 -->
+<div id="notification"
+     class="fixed top-4 right-4 max-w-sm bg-white rounded-lg shadow-lg p-4 transform transition-all duration-300 translate-x-full z-50">
+    <div class="flex items-start">
+        <div id="notification-icon" class="mr-3 text-blue-500">
+            <i class="fa fa-info-circle"></i>
+        </div>
+        <div class="flex-1">
+            <h4 id="notification-title" class="text-sm font-medium text-gray-800"></h4>
+            <p id="notification-message" class="mt-1 text-sm text-gray-600"></p>
+        </div>
+        <button id="close-notification" class="ml-3 text-gray-400 hover:text-gray-500">
+            <i class="fa fa-times"></i>
+        </button>
+    </div>
+</div>
+
+<script>
+    // API配置
+    // const API_BASE_URL = "localhost";
+
+    // DOM元素
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('register-form');
+    const toggleToRegister = document.getElementById('toggle-to-register');
+    const toggleToLogin = document.getElementById('toggle-to-login');
+    const loginSubmit = document.getElementById('login-submit');
+    const registerSubmit = document.getElementById('register-submit');
+    const notification = document.getElementById('notification');
+    const notificationIcon = document.getElementById('notification-icon');
+    const notificationTitle = document.getElementById('notification-title');
+    const notificationMessage = document.getElementById('notification-message');
+    const closeNotification = document.getElementById('close-notification');
+
+    // 切换表单
+    toggleToRegister.addEventListener('click', () => {
+        loginForm.classList.add('hidden');
+        registerForm.classList.remove('hidden');
+    });
+
+    toggleToLogin.addEventListener('click', () => {
+        registerForm.classList.add('hidden');
+        loginForm.classList.remove('hidden');
+    });
+
+    // 登录提交
+    loginSubmit.addEventListener('click', async () => {
+        const username = document.getElementById('login-username').value;
+        const password = document.getElementById('login-password').value;
+
+        if (!username || !password) {
+            showNotification('错误', '用户名和密码不能为空', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`{{API_BASE_URL}}/login`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    username,
+                    password
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                showNotification('登录失败', errorData.detail || '用户名或密码错误', 'error');
+                return;
+            }
+
+            const data = await response.text();
+            console.log(data)
+            // const token = data.access_token;
+            // localStorage.setItem('token', token);
+            if (data === "true") {
+                showNotification('登录成功', '欢迎回来！', 'success');
+                setTimeout(() => {
+                window.location.href = '/';
+                }, 1500);
+            } else {
+                showNotification('登录失败', '用户名或密码错误', 'error');
+            }
+
+            // 延迟跳转，让用户看到成功提示
+            // setTimeout(() => {
+            //     window.location.href = '/';
+            // }, 1500);
+        } catch (error) {
+            console.error('登录错误:', error);
+            showNotification('错误', '网络连接失败，请稍后再试', 'error');
+        }
+    });
+
+    // 注册提交
+    registerSubmit.addEventListener('click', async () => {
+        const username = document.getElementById('register-username').value;
+        const password = document.getElementById('register-password').value;
+        const confirmPassword = document.getElementById('register-confirm-password').value;
+
+        if (!username || !password) {
+            showNotification('错误', '用户名和密码不能为空', 'error');
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            showNotification('错误', '两次输入的密码不一致', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch(`${API_BASE_URL}/users/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    username,
+                    password
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                showNotification('注册失败', errorData.detail || '注册过程中发生错误', 'error');
+                return;
+            }
+
+            showNotification('注册成功', '请使用新账号登录', 'success');
+
+            // 自动切换到登录表单
+            setTimeout(() => {
+                registerForm.classList.add('hidden');
+                loginForm.classList.remove('hidden');
+                document.getElementById('login-username').value = username;
+            }, 1500);
+        } catch (error) {
+            console.error('注册错误:', error);
+            showNotification('错误', '网络连接失败，请稍后再试', 'error');
+        }
+    });
+
+    // 显示通知
+    function showNotification(title, message, type = 'info') {
+        notificationTitle.textContent = title;
+        notificationMessage.textContent = message;
+
+        // 根据类型设置图标和颜色
+        notificationIcon.className = 'mr-3';
+        if (type === 'success') {
+            notificationIcon.innerHTML = '<i class="fa fa-check-circle"></i>';
+            notificationIcon.classList.add('text-green-500');
+        } else if (type === 'error') {
+            notificationIcon.innerHTML = '<i class="fa fa-exclamation-circle"></i>';
+            notificationIcon.classList.add('text-red-500');
+        } else if (type === 'warning') {
+            notificationIcon.innerHTML = '<i class="fa fa-exclamation-triangle"></i>';
+            notificationIcon.classList.add('text-yellow-500');
+        } else {
+            notificationIcon.innerHTML = '<i class="fa fa-info-circle"></i>';
+            notificationIcon.classList.add('text-blue-500');
+        }
+
+        // 显示通知
+        notification.classList.remove('translate-x-full');
+
+        // 3秒后自动隐藏
+        setTimeout(hideNotification, 3000);
+    }
+
+    // 隐藏通知
+    function hideNotification() {
+        notification.classList.add('translate-x-full');
+    }
+
+    // 关闭通知
+    closeNotification.addEventListener('click', hideNotification);
+
+    // 检查登录状态，如果已登录则直接跳转到仪表盘0
+    document.addEventListener('DOMContentLoaded', () => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            window.location.href = '{{API_BASE_URL}}/';
+        }
+    });
+</script>
+</body>
+
+</html>
