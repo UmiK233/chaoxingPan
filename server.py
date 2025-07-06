@@ -345,17 +345,18 @@ if __name__ == "__main__":
     import argparse
 
     # 创建参数解析器
-    parser = argparse.ArgumentParser(description="示例：命令行参数解析")
+    parser = argparse.ArgumentParser()
     # 添加位置参数（必填）
-    parser.add_argument("-p", "--port", type=int, default=80, help="端口号（默认80）")
+    parser.add_argument("-p", "--port", type=int, default=80, help="端口号(默认80)")
     # 添加可选参数（带默认值和类型）
-    parser.add_argument("-u", "--url", type=str, default=API_BASE_URL, help="你的公网地址（如果有）")
+    parser.add_argument("-u", "--url", type=str, default=API_BASE_URL, help="你的公网地址(如果有)")
     # 添加标志位参数（布尔值）
     parser.add_argument("-v", "--verbose", action="store_true", help="显示详细信息")
     # 解析参数
     args = parser.parse_args()
 
     port = args.port
+
     API_BASE_URL = f"{args.url}"
     # print(args)
     # print(API_BASE_URL)
